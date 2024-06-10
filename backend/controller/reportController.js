@@ -5,19 +5,12 @@ export const generatePdf = async (req, res) => {
   try {
     const { Project, Month, Year, School } = req.body;
 
-  
-   const startDate = `${Year}-${Month.padStart(2, '0')}-01`;
-
-   const lastDayOfMonth = new Date(Year, parseInt(Month, 10), 0).getDate();
-   
-   const endDate = `${Year}-${Month.padStart(2, '0')}-${lastDayOfMonth}`;
-
-
+    const startDate = `${Year}-${Month.padStart(2, '0')}-01`;
+    const lastDayOfMonth = new Date(Year, parseInt(Month, 10), 0).getDate();
+    const endDate = `${Year}-${Month.padStart(2, '0')}-${lastDayOfMonth}`;
 
     console.log(`Querying data from ${startDate} to ${endDate}`);
 
-    
-    
     const query = `
       SELECT 
         geo_attendance_demo.Project, 
@@ -33,20 +26,13 @@ export const generatePdf = async (req, res) => {
       AND DATE_FORMAT(geo_attendance_demo.Date, '%Y-%m-%d') <= ? 
       ${School ? 'AND geo_attendance_demo.School = ?' : ''}`;
 
-
-      
     const values = [Project, startDate, endDate];
     if (School) values.push(School);
-
-
 
     Connection.query(query, values, (error, results) => {
       if (error) {
         return res.status(400).json({ message: 'Error', error: error.message });
       }
-
-    
-
 
       if (results.length === 0) {
         return res.status(404).json({ message: 'No data found for the specified parameters' });
@@ -69,12 +55,16 @@ export const generatePdf = async (req, res) => {
       let yPos = margin;
       let xPos;
 
-      
+      const centerTable = (tableWidth, pageWidth, margin) => {
+        return (pageWidth - tableWidth) / 2 + margin;
+      };
 
       const drawTableHeaders = () => {
-        xPos = centerTable(tableWidth,pageWidth, margin);
+        xPos = centerTable(tableWidth, pageWidth, margin);
         headers.forEach((header, index) => {
-          doc.text(header, xPos, yPos, { width: columnWidths[index], align: 'center' });
+          const textHeight = doc.heightOfString(header, { width: columnWidths[index] });
+          const textY = yPos + (headerHeight - textHeight) / 2;
+          doc.text(header, xPos, textY, { width: columnWidths[index], align: 'center' });
           doc.rect(xPos, yPos, columnWidths[index], headerHeight).stroke(); // Draw border for header
           xPos += columnWidths[index];
         });
@@ -82,7 +72,7 @@ export const generatePdf = async (req, res) => {
       };
 
       const drawTableRow = (row, index) => {
-        xPos = centerTable(tableWidth,pageWidth, margin);
+        xPos = centerTable(tableWidth, pageWidth, margin);
         const rowData = { 'SI No': index + 1, ...row };
         Object.entries(rowData).forEach(([key, value], index) => {
           let displayValue = value === null ? ' ' : value.toString();
@@ -90,8 +80,9 @@ export const generatePdf = async (req, res) => {
             const date = new Date(value);
             displayValue = date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
           }
-          
-          doc.text(displayValue, xPos, yPos, { width: columnWidths[index], align: 'center' });
+          const textHeight = doc.heightOfString(displayValue, { width: columnWidths[index] });
+          const textY = yPos + (rowHeight - textHeight) / 2;
+          doc.text(displayValue, xPos, textY, { width: columnWidths[index], align: 'center' });
           doc.rect(xPos, yPos, columnWidths[index], rowHeight).stroke();
           xPos += columnWidths[index];
         });
@@ -127,6 +118,3 @@ export const generatePdf = async (req, res) => {
   }
 };
 
-const centerTable = (tableWidth, pageWidth, margin) => {
-  return (pageWidth - tableWidth) / 2 + margin;
-};
