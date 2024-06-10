@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState , useMemo} from 'react'
 import Select from 'react-select';
 
 const FormComponent = ({setPdfBase64, projects}) => {
@@ -9,20 +9,51 @@ const FormComponent = ({setPdfBase64, projects}) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
 
     const handleProjectChange = (e) => {
-        const selectedProjectId = e.target.value;
-        setSelectedProject(selectedProjectId);
-        const filteredSchools = projects
-          .filter(project => project.Project === parseInt(selectedProjectId))
-          .map(item => item.School);
-        setSchools([...new Set(filteredSchools)]);
-        setSelectedSchool('');
-      };
+      const selectedProjectId = e.target.value;
+      setSelectedProject(selectedProjectId);
+      
+    };
+   
     
-      // Event handler for form submission to generate PDF report
+
+  
+  const handleSchools = async (projectId) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/getSchoolByProject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ Project: projectId }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to fetch schools');
+      }
+  
+      const data = await response.json();
+      setSchools(data); 
+      
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      setSchools([]); 
+    }
+  };
+  
+
+
+  useMemo(() => {
+    if (selectedProject) {
+      handleSchools(selectedProject); 
+    }
+  }, [selectedProject]);
+
+ 
+     
       const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-          const response = await fetch('http://localhost:5000/api/generatepdf', {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/api/generatepdf`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -37,7 +68,7 @@ const FormComponent = ({setPdfBase64, projects}) => {
           
           if (response.status === 404) {
             alert("No data found for the specified parameters");
-            return; // Stop further execution as there is no data
+            return; 
           }
          
           if (!response.ok) {
@@ -53,7 +84,7 @@ const FormComponent = ({setPdfBase64, projects}) => {
       };
 
       const yearOptions = [...Array(101).keys()].map(i => ({
-        value: new Date().getFullYear() - 50 + i, // Adjust the starting year as needed
+        value: new Date().getFullYear() - 50 + i,
         label: `${new Date().getFullYear() - 50 + i}`
       }));
     
@@ -80,25 +111,30 @@ const FormComponent = ({setPdfBase64, projects}) => {
             </select>
           </div>}
 
-          {/* School selection dropdown */}
-          <div className="form-group">
-            <label htmlFor="dropdown2">School</label>
-            <select
-              className="form-select form-select-sm"
-              id="dropdown2"
-              value={selectedSchool}
-              onChange={(e) => setSelectedSchool(e.target.value)}
-              aria-label="Option 2"
-              disabled={!selectedProject}
-            >
-              <option value="" disabled>Select School</option>
-              {schools.map(school => (
-                <option key={school} value={school}>{school}</option>
-              ))}
-            </select>
-          </div>
+          
+       
+        <div className="form-group">
+          <label htmlFor="dropdown2">School</label>
+          <select
+            className="form-select form-select-sm"
+            id="dropdown2"
+            value={selectedSchool}
+            onChange={(e)=>setSelectedSchool(e.target.value)}
+            aria-label="Option 2"
+            disabled={!selectedProject}
+          >
+            <option value="" disabled>
+              Select School
+            </option>
+            {schools.map((school, index) => (
+              <option key={index} value={school}>
+                {school}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          {/* Year selection dropdown */}
+         
           <div className="form-group">
             <label htmlFor="yearDropdown">Select Year</label>
             <Select
@@ -111,7 +147,7 @@ const FormComponent = ({setPdfBase64, projects}) => {
             />
           </div>
 
-          {/* Month selection dropdown */}
+         
           <div className="form-group">
             <label htmlFor="monthDropdown">Select Month</label>
             <select

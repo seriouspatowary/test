@@ -9,7 +9,7 @@ export const generatePdf = async (req, res) => {
     const lastDayOfMonth = new Date(Year, parseInt(Month, 10), 0).getDate();
     const endDate = `${Year}-${Month.padStart(2, '0')}-${lastDayOfMonth}`;
 
-    console.log(`Querying data from ${startDate} to ${endDate}`);
+  
 
     const query = `
       SELECT 
@@ -37,12 +37,12 @@ export const generatePdf = async (req, res) => {
       if (results.length === 0) {
         return res.status(404).json({ message: 'No data found for the specified parameters' });
       }
-
-      // Create a new PDF document
+   
+   
+   
       const doc = new PDFDocument();
       const buffers = [];
 
-      // Set up table headers
       const headers = ['SI No', 'Project', 'School', 'Date', 'Out Time', 'Remarks', 'Status'];
       const columnWidths = [40, 40, 40, 80, 80, 120, 80];
       const headerHeight = 30;
@@ -65,7 +65,7 @@ export const generatePdf = async (req, res) => {
           const textHeight = doc.heightOfString(header, { width: columnWidths[index] });
           const textY = yPos + (headerHeight - textHeight) / 2;
           doc.text(header, xPos, textY, { width: columnWidths[index], align: 'center' });
-          doc.rect(xPos, yPos, columnWidths[index], headerHeight).stroke(); // Draw border for header
+          doc.rect(xPos, yPos, columnWidths[index], headerHeight).stroke(); 
           xPos += columnWidths[index];
         });
         yPos += headerHeight;
@@ -78,7 +78,23 @@ export const generatePdf = async (req, res) => {
           let displayValue = value === null ? ' ' : value.toString();
           if (key === 'Date') {
             const date = new Date(value);
-            displayValue = date.toISOString().split('T')[0]; // Format date as YYYY-MM-DD
+            displayValue = date.toISOString().split('T')[0]; 
+          }
+          else if (key === 'Punch_Out_Time' && value) {
+            // Manually parse the time string "HH:mm:ss"
+            const [hours, minutes, seconds] = value.split(':');
+            const date = new Date();
+            date.setHours(parseInt(hours));
+            date.setMinutes(parseInt(minutes));
+            date.setSeconds(parseInt(seconds));
+
+            // Format time in standard Indian time format with AM/PM
+            displayValue = date.toLocaleTimeString('en-IN', {
+              hour12: true,
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit'
+            });
           }
           const textHeight = doc.heightOfString(displayValue, { width: columnWidths[index] });
           const textY = yPos + (rowHeight - textHeight) / 2;
@@ -89,10 +105,9 @@ export const generatePdf = async (req, res) => {
         yPos += rowHeight;
       };
 
-      // Draw table headers
       drawTableHeaders();
 
-      // Add content to the PDF document
+      
       results.forEach((row, index) => {
         if (yPos + rowHeight > pageHeight) {
           doc.addPage();
@@ -102,14 +117,14 @@ export const generatePdf = async (req, res) => {
         drawTableRow(row, index);
       });
 
-      // Pipe the PDF content to a buffer
+     
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
         const pdfData = Buffer.concat(buffers).toString('base64');
         res.status(200).json({ pdfData });
       });
 
-      // Finalize the PDF document
+     
       doc.end();
 
     });

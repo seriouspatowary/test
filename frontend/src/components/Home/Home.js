@@ -3,19 +3,22 @@ import PdfComponent from './PdfComponent';
 import FormComponent from './FormComponent'
 
 const Home = () => {
-  // State variables to manage user selections and PDF data
+
   const [projects, setProjects] = useState([]);
+
   const [pdfBase64, setPdfBase64] = useState('');
 
-  // Fetch projects when component mounts
+ 
   useEffect(() => {
     fetchProjects();
+  
+    
   }, []);
 
-  // Function to fetch projects from the server
+
   const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/getproject');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/getproject`);
       if (!response.ok) {
         throw new Error('Failed to fetch projects');
       }
@@ -26,16 +29,12 @@ const Home = () => {
     }
   };
 
-  // Event handler for project selection
-
-
-
-   // Adjust the range as needed
+  
 
 
   return (
     <div className="">
-        <FormComponent setPdfBase64={setPdfBase64} projects={projects}/>
+        <FormComponent setPdfBase64={setPdfBase64} projects={projects}  />
       <div style={{height:'600px', width:'100%'}}>
         {pdfBase64 && (
           <PdfComponent pdfBase64={pdfBase64}/>
